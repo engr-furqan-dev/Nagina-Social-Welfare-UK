@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1049510950065",
+    "project_id": "nagina-social-welfare-uk",
+    "storage_bucket": "nagina-social-welfare-uk.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1049510950065:android:69a564feba8d88dcc25e90",
+        "android_client_info": {
+          "package_name": "com.education.markaz_e_deen_islam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmekEoj6-M8LeABBrv8BHp_0wRCYYSvcw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1049510950065:android:a28af80170f5cf15c25e90",
+        "android_client_info": {
+          "package_name": "com.naginaorganization.charity_collection_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmekEoj6-M8LeABBrv8BHp_0wRCYYSvcw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
