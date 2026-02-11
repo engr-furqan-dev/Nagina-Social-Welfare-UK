@@ -101,7 +101,7 @@ class _SelectBoxScreenState extends State<SelectBoxScreen> {
                       ),
                       const SizedBox(width: 16),
                       const Text(
-                        "Select Box",
+                        "List of Boxes",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,

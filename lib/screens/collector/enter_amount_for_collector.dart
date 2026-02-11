@@ -18,33 +18,19 @@ class EnterAmountScreen extends StatefulWidget {
 
 class _EnterAmountScreenState extends State<EnterAmountScreen> {
   final TextEditingController _amountController = TextEditingController();
-  // final TextEditingController _collectorNameController = TextEditingController();
-
   bool _isSubmitting = false;
-
-  /// 🔹 MOCK SWITCH (true = NO real SMS)
   final bool _mockSms = false;
-
   TwilioFlutter? _twilioFlutter;
 
   @override
   void initState() {
     super.initState();
-
-    /// Initialize Twilio ONLY if real SMS is required
     if (!_mockSms) {
       _twilioFlutter = TwilioFlutter(
         accountSid: 'ACb2de03afb31797babd208aa7b410eb69',
         authToken: '8d040ac39a47f7e219344b71fa533ec2',
         twilioNumber: 'MarkazIslam',
       );
-      /*
-      twilioFlutter = TwilioFlutter(
-      accountSid: 'ACb2de03afb31797babd208aa7b410eb69',
-      authToken: '8d040ac39a47f7e219344b71fa533ec2',
-      twilioNumber: 'MarkazIslam',
-       );
-      */
     }
   }
 
@@ -53,16 +39,11 @@ class _EnterAmountScreenState extends State<EnterAmountScreen> {
     if (hour == 0) hour = 12;
     String minute = date.minute.toString().padLeft(2, '0');
     String period = date.hour >= 12 ? 'PM' : 'AM';
-
     return "${date.day.toString().padLeft(2, '0')}-"
         "${date.month.toString().padLeft(2, '0')}-"
-        "${date.year} "
-        "$hour:$minute $period";
+        "${date.year} $hour:$minute $period";
   }
-//------ admin--------
-  Future<Map<String, dynamic>?> _getAdminConfig() async {
-    return await FirebaseService.getAdminInfo();
-  }
+
   String _adminReceiptMessage(double amount) {
     final timestamp = _formatDate(DateTime.now());
     return '''
@@ -75,8 +56,6 @@ Collected By: ${widget.collector.name}
 $timestamp
 ''';
   }
-
-
 
   String _generateReceiptMessage(double amount) {
     final timestamp = _formatDate(DateTime.now());
@@ -95,7 +74,6 @@ $timestamp
     setState(() => _isSubmitting = true);
 
     try {
-      // 1️⃣ Parse and validate amount
       final parsedAmount = double.tryParse(_amountController.text.trim());
       if (parsedAmount == null || parsedAmount <= 0) {
         if (!mounted) return;
@@ -104,9 +82,8 @@ $timestamp
         );
         return;
       }
-      final double amount = parsedAmount; // ✅ now safe non-nullable
+      final double amount = parsedAmount;
 
-      // 2️⃣ Add collection
       await FirebaseService().addCollection(
         CollectionModel(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -118,10 +95,8 @@ $timestamp
         ),
       );
 
-      // 3️⃣ Update box status → collected
       await FirebaseService().completeBoxCycle(widget.box.boxId);
 
-      // 4️⃣ Send SMS to contact person
       if (_mockSms) {
         await Future.delayed(const Duration(seconds: 1));
         debugPrint('MOCK SMS SENT TO CONTACT PERSON');
@@ -132,13 +107,11 @@ $timestamp
         );
       }
 
-      // 5️⃣ Update box status → sentReceipt
       await FirebaseService().updateBoxStatus(
         widget.box.boxId,
         BoxStatus.sentReceipt,
       );
 
-      // 6️⃣ Send SMS to admin (if enabled)
       final admin = await FirebaseService.getAdminInfo();
       if (admin != null &&
           admin['smsEnabled'] == true &&
@@ -150,7 +123,6 @@ $timestamp
         );
       }
 
-      // 7️⃣ Show confirmation dialog
       if (!mounted) return;
       _showReceiptSentDialog();
 
@@ -164,7 +136,6 @@ $timestamp
     }
   }
 
-
   void _showReceiptSentDialog() {
     showDialog(
       context: context,
@@ -172,16 +143,16 @@ $timestamp
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Receipt Sent'),
-          content: Text(
-            'Receipt has been sent to ${widget.box.contactPersonName}',
-          ),
+          content: Text('Receipt has been sent to ${widget.box.contactPersonName}'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) =>  CollectorDashboardScreen(collector: widget.collector)),
+                  MaterialPageRoute(
+                    builder: (_) => CollectorDashboardScreen(collector: widget.collector),
+                  ),
                 );
               },
               child: const Text('OK'),
@@ -194,114 +165,178 @@ $timestamp
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryColor = Color(0xFF265d60);
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text("Enter Amount"),
-        backgroundColor: Colors.green,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-
-              // Card with Box Details
-              Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+      body: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.only(top: 50, left: 24, right: 24, bottom: 30),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [primaryColor, primaryColor.withOpacity(0.85)],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryColor.withOpacity(0.3),
+                  offset: const Offset(0, 10),
+                  blurRadius: 20,
                 ),
-                margin: const EdgeInsets.only(bottom: 20),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _infoRow("Collected By", widget.collector.name),
-                      const SizedBox(height: 8),
-                      _infoRow("Box ID", widget.box.boxId),
-                      const SizedBox(height: 8),
-                      _infoRow("Contact Person", widget.box.contactPersonName),
-                    ],
+              ],
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.payments_outlined, color: Colors.white, size: 28),
+                SizedBox(width: 12),
+                Text(
+                  "Enter Collection Amount",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
 
-              // Amount Input
-              Text(
-                "Collected Amount",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  prefixText: "£ ",
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: "Enter amount",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _sendReceipt,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+          // Body
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Info Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          offset: const Offset(0, 4),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _modernInfoRow(Icons.person_outline, "Collected By", widget.collector.name),
+                        const SizedBox(height: 16),
+                        _modernInfoRow(Icons.inventory_2_outlined, "Box ID", widget.box.boxId),
+                        const SizedBox(height: 16),
+                        _modernInfoRow(Icons.contact_phone_outlined, "Contact Person", widget.box.contactPersonName),
+                      ],
                     ),
                   ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                  )
-                      : const Text(
-                    "SEND RECEIPT",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+
+                  const SizedBox(height: 30),
+
+                  // Amount Label
+                  const Text(
+                    "Collected Amount",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                   ),
-                ),
+                  const SizedBox(height: 12),
+
+                  // Amount Input
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          offset: const Offset(0, 4),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.currency_pound, color: primaryColor),
+                        hintText: "Enter amount",
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _sendReceipt,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        elevation: 8,
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                        height: 26,
+                        width: 26,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                          : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.send_rounded, color: Colors.white),
+                          SizedBox(width: 10),
+                          Text(
+                            "SEND RECEIPT",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _modernInfoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Text(
-          "$label: ",
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF265d60).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
           ),
+          child: Icon(icon, color: const Color(0xFF265d60), size: 22),
         ),
+        const SizedBox(width: 16),
         Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+              const SizedBox(height: 4),
+              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
           ),
         ),
       ],

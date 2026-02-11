@@ -194,119 +194,237 @@ $timestamp
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryColor = Color(0xFF265d60);
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text("Enter Amount"),
-        backgroundColor: Colors.green,
-        elevation: 0,
+      body: Column(
+        children: [
+          // ---------------- Header (Match Dashboard) ----------------
+          Container(
+            padding: const EdgeInsets.only(
+              top: 50,
+              left: 24,
+              right: 24,
+              bottom: 30,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  primaryColor,
+                  primaryColor.withOpacity(0.85),
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryColor.withOpacity(0.3),
+                  offset: const Offset(0, 10),
+                  blurRadius: 20,
+                ),
+              ],
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.payments_outlined,
+                    color: Colors.white, size: 28),
+                SizedBox(width: 12),
+                Text(
+                  "Enter Collection Amount",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ---------------- Body ----------------
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  // -------- Info Card --------
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          offset: const Offset(0, 4),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _modernInfoRow(Icons.person_outline,
+                            "Collected By", widget.collectorName),
+                        const SizedBox(height: 16),
+                        _modernInfoRow(Icons.inventory_2_outlined,
+                            "Box ID", widget.box.boxId),
+                        const SizedBox(height: 16),
+                        _modernInfoRow(Icons.contact_phone_outlined,
+                            "Contact Person",
+                            widget.box.contactPersonName),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // -------- Amount Label --------
+                  const Text(
+                    "Collected Amount",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // -------- Amount Input --------
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          offset: const Offset(0, 4),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(
+                          Icons.currency_pound,
+                          color: primaryColor,
+                        ),
+                        hintText: "Enter amount",
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                            vertical: 22, horizontal: 16),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // -------- Submit Button --------
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _sendReceipt,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        elevation: 8,
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                        height: 26,
+                        width: 26,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                          : const Row(
+                        mainAxisAlignment:
+                        MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.send_rounded,
+                              color: Colors.white),
+                          SizedBox(width: 10),
+                          Text(
+                            "SEND RECEIPT",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
+    );
+  }
+
+
+  Widget _modernInfoRow(
+      IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF265d60).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon,
+              color: const Color(0xFF265d60), size: 22),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-              // Card with Box Details
-              Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                margin: const EdgeInsets.only(bottom: 20),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _infoRow("Collected By", widget.collectorName),
-                      const SizedBox(height: 8),
-                      _infoRow("Box ID", widget.box.boxId),
-                      const SizedBox(height: 8),
-                      _infoRow("Contact Person", widget.box.contactPersonName),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Amount Input
               Text(
-                "Collected Amount",
+                label,
                 style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  prefixText: "£ ",
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: "Enter amount",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _sendReceipt,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                  )
-                      : const Text(
-                    "SEND RECEIPT",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _infoRow(String label, String value) {
-    return Row(
-      children: [
-        Text(
-          "$label: ",
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 16),
-          ),
-        ),
+        )
       ],
     );
   }
+
 
   @override
   void dispose() {

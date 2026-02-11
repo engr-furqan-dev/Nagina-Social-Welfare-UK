@@ -355,6 +355,7 @@ $timestamp
       await FirebaseService().updateBoxStatus(
         widget.box.boxId,
         BoxStatus.collected,
+        collectorName: _currentCollectorName,
       );
 
       if (!mounted) return;
@@ -729,7 +730,8 @@ $timestamp
                                     MaterialPageRoute(
                                       builder: (_) => EnterAmountScreen(
                                         box: widget.box,
-                                        collectorName: _currentCollectorName ?? 'Unknown',
+                                        collectorName: widget.box.collectorName ?? 'Unknown',
+
                                       ),
                                     ),
                                   );

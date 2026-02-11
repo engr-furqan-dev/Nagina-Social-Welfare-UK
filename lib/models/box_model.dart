@@ -4,6 +4,7 @@ class BoxModel {
   final String id;
   final String boxId;
   final String venueName;
+  final String? collectorName;
 
   final String contactPersonName;
   final String contactPersonPhone;
@@ -19,6 +20,8 @@ class BoxModel {
     required this.id,
     required this.boxId,
     required this.venueName,
+    this.collectorName,
+
     required this.contactPersonName,
     required this.contactPersonPhone,
     required this.totalCollected,
@@ -35,6 +38,7 @@ class BoxModel {
     String? boxId,
     int? boxSequence,
     String? venueName,
+    String? collectorName,
     String? contactPersonName,
     String? contactPersonPhone,
     double? totalCollected,
@@ -48,6 +52,7 @@ class BoxModel {
       boxId: boxId ?? this.boxId,
       boxSequence: boxSequence ?? this.boxSequence,
       venueName: venueName ?? this.venueName,
+      collectorName: collectorName ?? this.collectorName,
       contactPersonName:
       contactPersonName ?? this.contactPersonName,
       contactPersonPhone:
@@ -63,10 +68,13 @@ class BoxModel {
 
 
 
+
   Map<String, dynamic> toMap() {
     return {
       'boxId': boxId,
       'venueName': venueName,
+      'collectorName': collectorName,
+
       'contactPersonName': contactPersonName,
       'contactPersonPhone': contactPersonPhone,
       'totalCollected': totalCollected,
@@ -85,6 +93,9 @@ class BoxModel {
       id: docId,
       boxId: map['boxId'] ?? '',
       venueName: map['venueName'] ?? '',
+      collectorName: map['collectorName'],
+
+
       contactPersonName: map['contactPersonName'] ?? map['ownerName'] ?? '',
       contactPersonPhone: map['contactPersonPhone'] ?? map['ownerPhone'] ?? '',
       totalCollected: (map['totalCollected'] ?? 0).toDouble(),

@@ -37,9 +37,9 @@ class _AllBoxesScreenState extends State<AllBoxesScreen> {
       case BoxStatus.notCollected:
         return Colors.red.shade200;
       case BoxStatus.collected:
-        return Colors.green.shade200;
-      case BoxStatus.sentReceipt:
         return Colors.blue.shade200;
+      case BoxStatus.sentReceipt:
+        return Colors.green.shade200;
     }
   }
 

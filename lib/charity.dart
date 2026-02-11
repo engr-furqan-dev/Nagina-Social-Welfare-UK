@@ -1,3 +1,5 @@
+/*
+
 import 'package:flutter/material.dart';
 
 class CharityApp extends StatelessWidget {
@@ -333,3 +335,5 @@ class InfoCard extends StatelessWidget {
     );
   }
 }
+
+ */

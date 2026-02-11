@@ -127,7 +127,11 @@ class FirebaseService {
   }
 
 // filter for status
-  Future<void> updateBoxStatus(String boxId, BoxStatus status) async {
+  Future<void> updateBoxStatus(
+      String boxId,
+      BoxStatus status, {
+        String? collectorName,
+      }) async {
     final query = await _db
         .collection('boxes')
         .where('boxId', isEqualTo: boxId)
@@ -140,11 +144,19 @@ class FirebaseService {
 
     final docId = query.docs.first.id;
 
-    await _db.collection('boxes').doc(docId).update({
+    final updateData = {
       'status': status.name,
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    // Only store collectorName when provided
+    if (collectorName != null) {
+      updateData['collectorName'] = collectorName;
+    }
+
+    await _db.collection('boxes').doc(docId).update(updateData);
   }
+
 
   /* -------------------- Admin Info Method -------------------- */
 
