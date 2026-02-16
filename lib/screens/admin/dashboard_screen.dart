@@ -7,7 +7,7 @@ import '../../providers/box_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../services/firebase_service.dart';
 import '../onboarding_screen.dart';
-import '../../services/auth_service.dart';
+import '../../services/session_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'admin_information_screen.dart';
 import 'monthly_summary_screen.dart';

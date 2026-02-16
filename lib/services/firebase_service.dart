@@ -182,6 +182,23 @@ class FirebaseService {
         .set(data, SetOptions(merge: true));
   }
 
+  Future<bool> loginAdmin(String username, String password) async {
+    final doc = await _db
+        .collection('admin')
+        .doc('info')
+        .get();
+
+    if (!doc.exists) return false;
+
+    final data = doc.data()!;
+
+    if (data['isActive'] != true) return false;
+
+    return data['username'] == username &&
+        data['password'] == password;
+  }
+
+
 // firebase_service.dart
   Future<void> resetAllBoxesStatus() async {
     final firestore = FirebaseFirestore.instance;

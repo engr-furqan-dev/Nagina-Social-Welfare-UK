@@ -17,6 +17,12 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  String _initialUsername = '';
+  String _initialPassword = '';
+
 
   bool _smsEnabled = false;
   bool _isLoading = true;
@@ -49,6 +55,12 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
         _initialPhone = adminData['phone'] ?? '';
         _initialAddress = adminData['address'] ?? '';
         _initialSmsEnabled = adminData['smsEnabled'] ?? false;
+        _initialUsername = adminData['username'] ?? '';
+        _initialPassword = adminData['password'] ?? '';
+
+        _usernameController.text = _initialUsername;
+        _passwordController.text = _initialPassword;
+
 
         _nameController.text = _initialName;
         _phoneController.text = _initialPhone;
@@ -69,7 +81,10 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
         _nameController.text.trim() != _initialName ||
             _phoneController.text.trim() != _initialPhone ||
             _addressController.text.trim() != _initialAddress ||
+            _usernameController.text.trim() != _initialUsername ||
+            _passwordController.text.trim() != _initialPassword ||
             _smsEnabled != _initialSmsEnabled;
+
 
     if (_hasChanges != hasChanged) {
       setState(() {
@@ -85,6 +100,8 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim();
     final address = _addressController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
 
     bool hasError = false;
 
@@ -127,9 +144,13 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
       'name': name,
       'phone': phone,
       'address': address,
+      'username': username,
+      'password': password,
       'smsEnabled': _smsEnabled,
+      'isActive': true,
       'updatedAt': DateTime.now(),
     };
+
 
     try {
       await FirebaseService.saveAdminInfo(data);
@@ -148,6 +169,8 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
       _initialPhone = phone;
       _initialAddress = address;
       _initialSmsEnabled = _smsEnabled;
+      _initialUsername = _usernameController.text.trim();
+      _initialPassword = _passwordController.text.trim();
 
       setState(() {
         _hasChanges = false;
@@ -281,8 +304,17 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
                        label: 'Address (Optional)',
                        icon: Icons.location_on_outlined,
                      ),
+                     const SizedBox(height: 16),
+                     // Username
+                     _buildModernTextField(
+                       controller: _usernameController,
+                       label: 'Username',
+                       icon: Icons.person,
+                       readOnly: true,
+
+                     ),
                      const SizedBox(height: 24),
-            
+
                      // SMS Switch
                      Container(
                        decoration: BoxDecoration(
@@ -376,6 +408,7 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    bool readOnly = false,
     String? hint,
     String? errorText,
     String? prefixText,
@@ -411,6 +444,7 @@ class _AdminInformationScreenState extends State<AdminInformationScreen> {
           ),
           child: TextField(
             controller: controller,
+            readOnly: readOnly,
             keyboardType: keyboardType,
             maxLines: maxLines,
             onChanged: ((_) {

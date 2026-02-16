@@ -132,7 +132,7 @@ class _SelectBoxScreenState extends State<SelectBoxScreen> {
                           onChanged: provider.onSearchChanged,
                           style: const TextStyle(fontSize: 16),
                           decoration: InputDecoration(
-                            hintText: "Search Box ID or Venue...",
+                            hintText: "Search Box Number or Venue...",
                             hintStyle: TextStyle(color: Colors.grey.shade400),
                             prefixIcon: Icon(Icons.search, color: primaryColor),
                             suffixIcon: provider.searchQuery.isNotEmpty
@@ -186,12 +186,18 @@ class _SelectBoxScreenState extends State<SelectBoxScreen> {
                   final allBoxes = snapshot.data!;
                   
                   // Filter by Search Query
-                  final searchedBoxes = provider.searchQuery.isEmpty
+                  final query = provider.searchQuery.trim().toLowerCase();
+
+                  final searchedBoxes = query.isEmpty
                       ? allBoxes
-                      : allBoxes.where((b) =>
-                          b.boxSequence.toString().contains(provider.searchQuery) ||
-                          b.venueName.toLowerCase().contains(provider.searchQuery.toLowerCase())
-                        ).toList();
+                      : allBoxes.where((b) {
+                    final paddedSequence = b.boxSequence.toString().padLeft(3, '0');
+
+                    return paddedSequence.contains(query) ||
+                        b.boxSequence.toString().contains(query) || // keeps old behavior
+                        b.venueName.toLowerCase().contains(query);
+                  }).toList();
+
 
                   // Filter by Status
                   final boxes = _applyFilter(searchedBoxes)

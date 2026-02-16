@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dashboard_screen.dart';
+import '../../services/firebase_service.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
+  final FirebaseService _firebaseService = FirebaseService();
 
   bool _obscurePassword = true;
   bool isLoading = false;
@@ -23,9 +26,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final Color secondaryColor = const Color(0xFFd5a148);
 
   // Hardcoded admin credentials
-  final String username = "saeeng";
-  final String password = "786000";
-
+ // final String username = "saeeng";
+ // final String password = "786000";
+/*
   Future<void> login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -54,6 +57,45 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() {
         error = 'Something went wrong. Try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+ */
+  Future<void> login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      isLoading = true;
+      error = null;
+    });
+
+    try {
+      final inputUsername = usernameController.text.trim().toLowerCase();
+      final inputPassword = passwordController.text.trim();
+
+      final success = await _firebaseService.loginAdmin(
+        inputUsername,
+        inputPassword,
+      );
+
+      if (success) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      } else {
+        setState(() {
+          error = 'Invalid username or password';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Login failed. Try again.';
       });
     } finally {
       if (mounted) {
