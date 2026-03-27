@@ -218,7 +218,7 @@ class _AddBoxScreenState extends State<AddBoxScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please, Fill All the required Fields')),
+        const SnackBar(content: Text('Please enter 10 digits for the phone number')),
       );
       return;
     }
@@ -281,12 +281,6 @@ class _AddBoxScreenState extends State<AddBoxScreen> {
   Future<Uint8List> _generateQrPdf() async {
     final doc = pw.Document();
 
-    final qrImage = await QrPainter(
-      data: boxId,
-      version: QrVersions.auto,
-      gapless: false,
-    ).toImageData(200);
-
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -295,11 +289,19 @@ class _AddBoxScreenState extends State<AddBoxScreen> {
             child: pw.Column(
               mainAxisAlignment: pw.MainAxisAlignment.center,
               children: [
-                pw.Image(pw.MemoryImage(qrImage!.buffer.asUint8List())),
+                pw.SizedBox(
+                  width: 250,
+                  height: 250,
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: boxId,
+                    drawText: false,
+                  ),
+                ),
                 pw.SizedBox(height: 20),
                 pw.Text(
-                  boxId,
-                  style: pw.TextStyle(fontSize: 20),
+                  'Box ID: $boxId',
+                  style: const pw.TextStyle(fontSize: 20),
                 ),
               ],
             ),

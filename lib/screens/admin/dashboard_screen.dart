@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../models/box_model.dart';
-import '../../models/collection_model.dart';
 import '../../providers/box_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../services/firebase_service.dart';
 import '../onboarding_screen.dart';
-import '../../services/session_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'admin_information_screen.dart';
 import 'monthly_summary_screen.dart';
@@ -38,7 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 300),
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -47,7 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
@@ -65,6 +62,14 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   // 🔴 RESET CONFIRMATION
   Future<void> _confirmResetAll(BuildContext context) async {
+    final boxProvider = context.read<BoxProvider>();
+    if (boxProvider.boxes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No boxes available to reset.')),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -141,7 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 BoxShadow(
                   color: primaryColor.withOpacity(0.3),
                   offset: const Offset(0, 10),
-                  blurRadius: 20,
+                  blurRadius: 10,
                 ),
               ],
             ),
@@ -235,79 +240,57 @@ class _DashboardScreenState extends State<DashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ---------------- Live Stats Section ----------------
-                      StreamBuilder<List<BoxModel>>(
-                        stream: firebaseService.getBoxesStream(),
-                        builder: (context, boxSnapshot) {
-                          final boxes = boxSnapshot.hasData ? boxSnapshot.data! : <BoxModel>[];
+                      Builder( // Use Builder to get clean context for providers
+                        builder: (context) {
+                          final boxes = context.watch<BoxProvider>().boxes;
+                          final collections = context.watch<CollectionProvider>().collections;
                           
-                          // Sync with Provider
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            Provider.of<BoxProvider>(context, listen: false).setBoxes(boxes);
-                          });
-
-                          return StreamBuilder<List<CollectionModel>>(
-                            stream: firebaseService.getCollections(),
-                            builder: (context, colSnapshot) {
-                              final collections = colSnapshot.hasData ? colSnapshot.data! : <CollectionModel>[];
-                              
-                              // Sync with Provider
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                Provider.of<CollectionProvider>(context, listen: false).setCollections(collections);
-                              });
-                              
-                              final colProvider = context.read<CollectionProvider>(); // Read current state calculated from setCollections if immediate, or wait for next frame. 
-                              // Actually, standard provider pattern: updates to provider trigger rebuilds of consumers. 
-                              // Here were getting streams directly. Let's calculate stats directly from streams for immediate UI feedback.
-                              
-                              // Calculate stats manually here to be responsive without waiting for Provider notify
-                              double todayTotal = 0;
-                              double monthTotal = 0;
-                              final now = DateTime.now();
-                              
-                              for (var col in collections) {
-                                if (col.date.year == now.year && col.date.month == now.month) {
-                                  monthTotal += col.amount;
-                                  if (col.date.day == now.day) {
-                                    todayTotal += col.amount;
-                                  }
-                                }
+                          double todayTotal = 0;
+                          double monthTotal = 0;
+                          final now = DateTime.now();
+                          
+                          for (var col in collections) {
+                            if (col.date.year == now.year && col.date.month == now.month) {
+                              monthTotal += col.amount;
+                              if (col.date.day == now.day) {
+                                todayTotal += col.amount;
                               }
+                            }
+                          }
 
-                              return SizedBox(
-                                height: 130, // Fixed height for carousel
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  physics: const BouncingScrollPhysics(),
-                                  children: [
-                                    _StatCard(
-                                      title: "Total Boxes",
-                                      value: boxes.length.toString(),
-                                      icon: Icons.inventory_2,
-                                      color: Colors.blue.shade700,
-                                      delay: 0,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    _StatCard(
-                                      title: "Collected Today",
-                                      value: "£${todayTotal.toStringAsFixed(0)}",
-                                      icon: Icons.today,
-                                      color: Colors.orange.shade700,
-                                      delay: 100,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    _StatCard(
-                                      title: "This Month",
-                                      value: "£${monthTotal.toStringAsFixed(0)}",
-                                      icon: Icons.calendar_month,
-                                      color: Colors.teal.shade700,
-                                      delay: 200,
-                                    ),
-                                  ],
+                          return SizedBox(
+                            height: 130, // Fixed height for carousel
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              children: [
+                                _StatCard(
+                                  title: "Total Boxes",
+                                  value: boxes.length.toString(),
+                                  icon: Icons.inventory_2,
+                                  color: Colors.blue.shade700,
+                                  delay: 0,
                                 ),
-                              );
-                            },
+                                const SizedBox(width: 12),
+                                _StatCard(
+                                  title: "Collected Today",
+                                  value: "£${todayTotal.toStringAsFixed(0)}",
+                                  icon: Icons.today,
+                                  color: Colors.orange.shade700,
+                                  delay: 0,
+                                ),
+                                const SizedBox(width: 12),
+                                _StatCard(
+                                  title: "This Month",
+                                  value: "£${monthTotal.toStringAsFixed(0)}",
+                                  icon: Icons.calendar_month,
+                                  color: Colors.teal.shade700,
+                                  delay: 0,
+                                ),
+                              ],
+                            ),
                           );
-                        },
+                        }
                       ),
 
                       const SizedBox(height: 24),
@@ -329,7 +312,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         icon: Icons.inventory_2_outlined,
                         color: primaryColor,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllBoxesScreen())),
-                        delay: 300,
+                        delay: 0,
                       ),
                       const SizedBox(height: 16),
                       _DashboardTile(
@@ -338,7 +321,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         icon: Icons.bar_chart_outlined,
                         color: primaryColor,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MonthlySummaryScreen())),
-                        delay: 400,
+                        delay: 0,
                       ),
                       const SizedBox(height: 16),
                       _DashboardTile(
@@ -359,7 +342,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             }
                           }
                         },
-                        delay: 500,
+                        delay: 0,
                       ),
                       const SizedBox(height: 16),
                       _DashboardTile(
@@ -368,7 +351,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         icon: Icons.people_outline,
                         color: primaryColor,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CollectorListScreen())),
-                        delay: 600,
+                        delay: 0,
                       ),
                        const SizedBox(height: 16),
                       _DashboardTile(
@@ -377,7 +360,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         icon: Icons.admin_panel_settings_outlined,
                         color: primaryColor,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminInformationScreen())),
-                        delay: 700,
+                        delay: 0,
                       ),
 
                       const SizedBox(height: 32),
@@ -424,50 +407,53 @@ class _DashboardScreenState extends State<DashboardScreen>
                                ),
                                child: Material(
                                  color: Colors.transparent,
-                                 child: InkWell(
-                                   onTap: () => _confirmResetAll(context),
-                                   borderRadius: BorderRadius.circular(16),
-                                   child: Padding(
-                                     padding: const EdgeInsets.all(20),
-                                     child: Row(
-                                       children: [
-                                         Container(
-                                           padding: const EdgeInsets.all(12),
-                                           decoration: BoxDecoration(
-                                             color: Colors.red.withOpacity(0.1),
-                                             borderRadius: BorderRadius.circular(12),
-                                           ),
-                                           child: const Icon(Icons.warning_amber_rounded, color: Colors.red),
-                                         ),
-                                         const SizedBox(width: 16),
-                                         Expanded(
-                                           child: Column(
-                                             crossAxisAlignment: CrossAxisAlignment.start,
-                                             children: [
-                                                Text(
-                                                 'Reset Monthly Collection',
-                                                 style: GoogleFonts.poppins(
-                                                   fontWeight: FontWeight.bold,
-                                                   fontSize: 16,
-                                                   color: Colors.red,
-                                                 ),
-                                               ),
-                                               const SizedBox(height: 4),
-                                               Text(
-                                                 'Set all boxes to "Not Collected"',
-                                                 style: GoogleFonts.poppins(
-                                                   fontSize: 13,
-                                                   color: Colors.grey.shade600,
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                         ),
-                                         const Icon(Icons.chevron_right, color: Colors.red),
-                                       ],
-                                     ),
-                                   ),
-                                 ),
+                                  child: InkWell(
+                                    onTap: context.watch<BoxProvider>().boxes.isEmpty ? null : () => _confirmResetAll(context),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Opacity(
+                                      opacity: context.watch<BoxProvider>().boxes.isEmpty ? 0.5 : 1.0,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                   Text(
+                                                    'Reset Monthly Collection',
+                                                    style: GoogleFonts.poppins(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 16,
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    'Set all boxes to "Not Collected"',
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 13,
+                                                      color: Colors.grey.shade600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const Icon(Icons.chevron_right, color: Colors.red),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                ),
                              ),
                            ],

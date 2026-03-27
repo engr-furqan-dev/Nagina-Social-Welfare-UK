@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:twilio_flutter/twilio_flutter.dart';
+
+import '../services/twilio_service.dart';
 
 class SendSmsScreen extends StatefulWidget {
   const SendSmsScreen({super.key});
@@ -9,19 +10,8 @@ class SendSmsScreen extends StatefulWidget {
 }
 
 class _SendSmsScreenState extends State<SendSmsScreen> {
-  late TwilioFlutter twilioFlutter;
   final _phoneController = TextEditingController();
   final _messageController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    twilioFlutter = TwilioFlutter(
-      accountSid: 'ACb2de03afb31797babd208aa7b410eb69', // Add your Account SID
-      authToken: '8d040ac39a47f7e219344b71fa533ec2', // Add your Auth Token
-      twilioNumber: 'MarkazIslam', // Add your Twilio number
-    );
-  }
 
   void _sendSms() async {
     if (_phoneController.text.isEmpty || _messageController.text.isEmpty) {
@@ -33,17 +23,25 @@ class _SendSmsScreenState extends State<SendSmsScreen> {
     }
 
     try {
-      await twilioFlutter.sendSMS(
+      await TwilioService.sendSMS(
         toNumber: _phoneController.text,
         messageBody: _messageController.text,
       );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('SMS Sent Successfully')));
+      if(mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('SMS Sent Successfully')));
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error sending SMS: $e')));
+      debugPrint('Twilio Error: $e');
+      if(mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(
+          content: Text('Error sending SMS: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ));
+      }
     }
   }
 

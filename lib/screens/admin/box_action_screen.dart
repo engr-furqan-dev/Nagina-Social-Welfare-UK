@@ -8,10 +8,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:twilio_flutter/twilio_flutter.dart';
 
 import '../../models/box_model.dart';
 import '../../services/firebase_service.dart';
+import '../../services/twilio_service.dart';
 import 'enter_amount_screen.dart';
 import '../styles/text_style.dart';
 
@@ -43,30 +43,12 @@ class _BoxActionScreenState extends State<BoxActionScreen> {
   /// 🔹 MOCK SWITCH (true = NO real SMS)
   final bool _mockSms = false;
 
-  TwilioFlutter? twilioFlutter;
-
   @override
   void initState() {
     super.initState();
 
     _phoneController.text = widget.box.contactPersonPhone;
     _messageController.text = _generateCollectionMessage();
-
-    /// Initialize Twilio ONLY when real SMS is required
-    if (!_mockSms) {
-      twilioFlutter = TwilioFlutter(
-        accountSid: 'ACb2de03afb31797babd208aa7b410eb69',
-        authToken: '8d040ac39a47f7e219344b71fa533ec2',
-        twilioNumber: 'MarkazIslam',
-      );
-      /*
-      twilioFlutter = TwilioFlutter(
-      accountSid: 'ACb2de03afb31797babd208aa7b410eb69',
-      authToken: '8d040ac39a47f7e219344b71fa533ec2',
-      twilioNumber: 'MarkazIslam',
-       );
-      */
-    }
   }
 
   String _formatDate(DateTime date) {
@@ -124,7 +106,7 @@ $timestamp
         await Future.delayed(const Duration(seconds: 1));
         debugPrint('MOCK COLLECTION MESSAGE SENT');
       } else {
-        await twilioFlutter!.sendSMS(
+        await TwilioService.sendSMS(
           toNumber: _phoneController.text,
           messageBody: _messageController.text,
         );
@@ -140,10 +122,14 @@ $timestamp
       if (!mounted) return;
       _showMessageSentDialog();
     } catch (e) {
+      debugPrint('Twilio Error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error sending message: $e')));
+      ).showSnackBar(SnackBar(
+        content: Text('Error sending message: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ));
     }
     // admin
     // 🔔 ADMIN SMS (ONLY IF ENABLED)
@@ -153,7 +139,7 @@ $timestamp
         admin['smsEnabled'] == true &&
         admin['phone'] != null &&
         !_mockSms) {
-      await twilioFlutter!.sendSMS(
+      await TwilioService.sendSMS(
         toNumber: admin['phone'],
         messageBody: _adminCashCollectedMessage(),
       );

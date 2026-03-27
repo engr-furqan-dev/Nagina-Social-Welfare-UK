@@ -9,8 +9,9 @@ class FirebaseService {
   /* -------------------- BOX METHODS -------------------- */
 
   /// Add a new charity box
-  Future<void> addBox(BoxModel box) async {
-    await _db.collection('boxes').add(box.toMap());
+  Future<String> addBox(BoxModel box) async {
+    final docRef = await _db.collection('boxes').add(box.toMap());
+    return docRef.id;
   }
 
   /// Update existing box

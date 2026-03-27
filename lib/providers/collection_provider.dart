@@ -1,8 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/collection_model.dart';
+import '../services/firebase_service.dart';
 
 class CollectionProvider extends ChangeNotifier {
   final List<CollectionModel> _collections = [];
+  StreamSubscription<List<CollectionModel>>? _subscription;
+  final FirebaseService _firebaseService = FirebaseService();
+
+  CollectionProvider() {
+    _initStream();
+  }
+
+  void _initStream() {
+    _subscription = _firebaseService.getCollections().listen((data) {
+      setCollections(data);
+    });
+  }
 
   List<CollectionModel> get collections => _collections;
 
@@ -10,6 +24,12 @@ class CollectionProvider extends ChangeNotifier {
     _collections.clear();
     _collections.addAll(data);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   double get totalThisMonth {

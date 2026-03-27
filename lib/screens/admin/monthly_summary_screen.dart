@@ -300,7 +300,10 @@ class _MonthlySummaryScreenState extends State<MonthlySummaryScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) =>
-                                        BoxSummaryScreen(boxId: entry.key),
+                                        BoxSummaryScreen(
+                                          box: boxes.firstWhere((b) => b.boxId == entry.key),
+                                          selectedMonth: selectedMonth,
+                                        ),
                                   ),
                                 );
                               },

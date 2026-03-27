@@ -7,33 +7,33 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BoxProvider with ChangeNotifier {
   final FirebaseService _firebaseService = FirebaseService();
-
-  final TextEditingController searchController = TextEditingController(); // ✅ ADD
-
+  final TextEditingController searchController = TextEditingController();
+  
   List<BoxModel> _boxes = [];
   String _searchQuery = '';
   Timer? _debounce;
+  StreamSubscription<List<BoxModel>>? _subscription;
 
-  // Filtered boxes based on search query
+  BoxProvider() {
+    _initStream();
+  }
+
+  void _initStream() {
+    _subscription = _firebaseService.getBoxesStream().listen((list) {
+      setBoxes(list);
+    });
+  }
+
   List<BoxModel> get boxes {
     if (_searchQuery.isEmpty) return _boxes;
-
-    return _boxes
-        .where((b) =>
-        b.boxId.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            b.venueName.toLowerCase().contains(_searchQuery.toLowerCase())
-
-
-    ) // anywhere match
-        .toList();
+    return _boxes.where((b) =>
+      b.boxSequence.toString().padLeft(3, '0').contains(_searchQuery) ||
+      b.venueName.toLowerCase().contains(_searchQuery.toLowerCase())
+    ).toList();
   }
 
-  /*void setBoxes(List<BoxModel> list) {
-    _boxes = list;
-    notifyListeners();
-  }
-*/
-  // Debounce search input
+  String get searchQuery => _searchQuery;
+
   void onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
@@ -42,15 +42,12 @@ class BoxProvider with ChangeNotifier {
     });
   }
 
-  // ✅ FIXED: clears BOTH state and TextField
   void clearSearch() {
     _debounce?.cancel();
-    searchController.clear(); // ✅ clears search bar
+    searchController.clear();
     _searchQuery = '';
     notifyListeners();
   }
-
-  String get searchQuery => _searchQuery;
 
   // 🔐 ATOMIC SEQUENCE
   Future<int> _getNextBoxSequence() async {
@@ -59,93 +56,69 @@ class BoxProvider with ChangeNotifier {
 
     return await firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(counterRef);
-
-      // Get current counter
       int current = snapshot.exists ? (snapshot.get('boxSequence') ?? 0) : 0;
-
-      // Check if any boxes exist
-      final boxSnapshot = await firestore.collection('boxes').get();
-      if (boxSnapshot.docs.isEmpty) {
-        current = 0; // reset sequence if no boxes
-      }
-
       final next = current + 1;
-
-      transaction.set(
-        counterRef,
-        {'boxSequence': next},
-        SetOptions(merge: true),
-      );
-
+      transaction.set(counterRef, {'boxSequence': next}, SetOptions(merge: true));
       return next;
     });
   }
 
-
-  // ✅ ADD BOX (PRODUCTION SAFE)
   Future<BoxModel> addBox(BoxModel box) async {
     final sequence = await _getNextBoxSequence();
-
-    final newBox = box.copyWith(
-      boxSequence: sequence,
-    );
-
-    await _firebaseService.addBox(newBox);
-    return newBox; // ✅ THIS LINE FIXES EVERYTHING
+    final boxWithSeq = box.copyWith(boxSequence: sequence);
+    final docId = await _firebaseService.addBox(boxWithSeq);
+    return boxWithSeq.copyWith(id: docId);
   }
 
-  // Stream
-  Stream<List<BoxModel>> getBoxesStream() {
-    return _firebaseService.getBoxesStream();
-  }
+  Stream<List<BoxModel>> getBoxesStream() => _firebaseService.getBoxesStream();
 
   @override
   void dispose() {
     searchController.dispose();
     _debounce?.cancel();
+    _subscription?.cancel();
     super.dispose();
   }
 
   bool _isNewMonth(DateTime completedAt) {
     final now = DateTime.now();
-
-    final completedMonth =
-    DateTime(completedAt.year, completedAt.month);
-    final currentMonth =
-    DateTime(now.year, now.month);
-
+    final completedMonth = DateTime(completedAt.year, completedAt.month);
+    final currentMonth = DateTime(now.year, now.month);
     return currentMonth.isAfter(completedMonth);
   }
+
   void evaluateBox(BoxModel box) {
     if (box.status == BoxStatus.sentReceipt &&
         box.completedAt != null &&
         _isNewMonth(box.completedAt!)) {
-
-      box.status = BoxStatus.notCollected;
-      box.completedAt = null;
-
-      FirebaseService().updateBox(box);
+      
+      // We don't modify the object here anymore to avoid stream conflicts.
+      // Instead, we just trigger a Firebase update if needed.
+      _firebaseService.updateBoxStatus(box.boxId, BoxStatus.notCollected);
     }
   }
+
   void setBoxes(List<BoxModel> list) {
+    // We only call evaluateBox here, but the list itself comes from the stream
     for (final box in list) {
       evaluateBox(box);
     }
     _boxes = list;
     notifyListeners();
   }
-// box_provider.dart
-  void resetAllBoxesLocally() {
-    final updated = boxes.map((box) {
-      return box.copyWith(
-        status: BoxStatus.notCollected,
-        updatedAt: DateTime.now(),
-      );
-    }).toList();
 
-    setBoxes(updated);
+  // ✅ UPDATE BOX (CENTRALIZED)
+  Future<void> updateBox(BoxModel updatedBox) async {
+    // Only update Firebase. The stream will automatically update local _boxes.
+    await _firebaseService.updateBox(updatedBox);
   }
 
-
-
+  void resetAllBoxesLocally() {
+    // This is useful for immediate UI feedback before stream updates
+    _boxes = _boxes.map((box) => box.copyWith(
+      status: BoxStatus.notCollected,
+      updatedAt: DateTime.now(),
+    )).toList();
+    notifyListeners();
+  }
 }

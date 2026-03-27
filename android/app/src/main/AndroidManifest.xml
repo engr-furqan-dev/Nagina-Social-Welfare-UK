@@ -1,8 +1,24 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- REMOVE MEDIA PERMISSIONS INJECTED BY PLUGINS -->
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:node="remove"/>
+
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:node="remove"/>
+
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        tools:node="remove"/>
+
+<application
         android:label="Nagina Social Welfare UK"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:extractNativeLibs="true"
+        tools:replace="android:extractNativeLibs">
         <activity
             android:name=".MainActivity"
             android:exported="true"

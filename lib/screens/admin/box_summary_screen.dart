@@ -3,27 +3,30 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../models/box_model.dart';
+import '../../models/collection_model.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/box_provider.dart';
 
 class BoxSummaryScreen extends StatelessWidget {
-  final String boxId;
+  final BoxModel box;
+  final DateTime? selectedMonth;
 
-  const BoxSummaryScreen({super.key, required this.boxId});
+  const BoxSummaryScreen({super.key, required this.box, this.selectedMonth});
 
   @override
   Widget build(BuildContext context) {
     final collectionProvider = context.watch<CollectionProvider>();
-    final boxProvider = context.watch<BoxProvider>();
-
     final primaryColor = const Color(0xFF265d60);
     final secondaryColor = const Color(0xFFd5a148);
 
-    final box = boxProvider.boxes.firstWhere((b) => b.boxId == boxId);
-
-    final total = collectionProvider.totalForBox(boxId);
-    final monthly = collectionProvider.monthlyTotalForBox(boxId);
-    final history = collectionProvider.historyForBox(boxId);
+    final total = collectionProvider.totalForBox(box.boxId);
+    final monthly = collectionProvider.monthlyTotalForBox(
+      box.boxId,
+      month: selectedMonth?.month,
+      year: selectedMonth?.year,
+    );
+    final history = collectionProvider.historyForBox(box.boxId);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -109,7 +112,9 @@ class BoxSummaryScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _buildSummaryCard(
-                          "This Month",
+                          selectedMonth != null 
+                              ? DateFormat('MMMM').format(selectedMonth!)
+                              : "This Month",
                           "£${monthly.toStringAsFixed(2)}",
                           primaryColor,
                           Icons.calendar_month,

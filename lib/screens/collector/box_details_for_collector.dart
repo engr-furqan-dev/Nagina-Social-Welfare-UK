@@ -8,10 +8,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:twilio_flutter/twilio_flutter.dart';
-import '../../models/collector_model.dart';
 import '../../models/box_model.dart';
+import '../../models/collector_model.dart';
 import '../../services/firebase_service.dart';
+import '../../services/twilio_service.dart';
 import 'enter_amount_for_collector.dart';
 
 class BoxDetailForCollectorScreen extends StatefulWidget {
@@ -44,23 +44,12 @@ class _BoxDetailForCollectorScreenState extends State<BoxDetailForCollectorScree
   /// 🔹 MOCK SWITCH (true = NO real SMS)
   final bool _mockSms = false;
 
-  TwilioFlutter? twilioFlutter;
-
   @override
   void initState() {
     super.initState();
 
     _phoneController.text = widget.box.contactPersonPhone;
     _messageController.text = _generateCollectionMessage();
-
-    /// Initialize Twilio ONLY when real SMS is required
-    if (!_mockSms) {
-      twilioFlutter = TwilioFlutter(
-        accountSid: 'ACb2de03afb31797babd208aa7b410eb69',
-        authToken: '8d040ac39a47f7e219344b71fa533ec2',
-        twilioNumber: 'MarkazIslam',
-      );
-    }
   }
 
   String _formatDate(DateTime date) {
@@ -114,7 +103,7 @@ $timestamp
         await Future.delayed(const Duration(seconds: 1));
         debugPrint('MOCK COLLECTION MESSAGE SENT');
       } else {
-        await twilioFlutter!.sendSMS(
+        await TwilioService.sendSMS(
           toNumber: _phoneController.text,
           messageBody: _messageController.text,
         );
@@ -129,10 +118,14 @@ $timestamp
       if (!mounted) return;
       _showMessageSentDialog();
     } catch (e) {
+      debugPrint('Twilio Error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error sending message: $e')));
+      ).showSnackBar(SnackBar(
+        content: Text('Error sending message: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ));
     }
     // admin
     // 🔔 ADMIN SMS (ONLY IF ENABLED)
@@ -142,7 +135,7 @@ $timestamp
         admin['smsEnabled'] == true &&
         admin['phone'] != null &&
         !_mockSms) {
-      await twilioFlutter!.sendSMS(
+      await TwilioService.sendSMS(
         toNumber: admin['phone'],
         messageBody: _adminCashCollectedMessage(),
       );
@@ -229,12 +222,6 @@ $timestamp
   Future<Uint8List> _generateQrPdf() async {
     final doc = pw.Document();
 
-    final qrImage = await QrPainter(
-      data: widget.box.boxId,
-      version: QrVersions.auto,
-      gapless: false,
-    ).toImageData(200);
-
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -243,13 +230,30 @@ $timestamp
             child: pw.Column(
               mainAxisAlignment: pw.MainAxisAlignment.center,
               children: [
-                pw.Text('Box ${widget.box.boxSequence.toString().padLeft(3, '0')}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                pw.Text(
+                  'Box ${widget.box.boxSequence.toString().padLeft(3, '0')}',
+                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  widget.box.venueName,
+                  style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 30),
+                pw.SizedBox(
+                  width: 250,
+                  height: 250,
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: widget.box.boxId,
+                    drawText: false,
+                  ),
+                ),
                 pw.SizedBox(height: 20),
-                pw.Text(widget.box.venueName, style: pw.TextStyle(fontSize: 20,fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 20),
-                pw.Image(pw.MemoryImage(qrImage!.buffer.asUint8List())),
-                pw.SizedBox(height: 20),
-                pw.Text(widget.box.boxId, style: pw.TextStyle(fontSize: 20)),
+                pw.Text(
+                  'ID: ${widget.box.boxId}',
+                  style: const pw.TextStyle(fontSize: 16),
+                ),
               ],
             ),
           );

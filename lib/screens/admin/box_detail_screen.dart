@@ -9,11 +9,11 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:twilio_flutter/twilio_flutter.dart';
 
 import '../../models/box_model.dart';
 import '../../providers/box_provider.dart';
 import '../../services/firebase_service.dart';
+import '../../services/twilio_service.dart';
 import 'enter_amount_screen.dart';
 
 class BoxDetailScreen extends StatefulWidget {
@@ -38,7 +38,6 @@ class _BoxDetailScreenState extends State<BoxDetailScreen> {
   bool phoneError = false;
   late BoxStatus _selectedStatus;
 
-  late TwilioFlutter twilioFlutter;
   late String initialVenue;
   late String initialContactPersonName;
   late String initialContactPersonPhone;
@@ -81,6 +80,7 @@ class _BoxDetailScreenState extends State<BoxDetailScreen> {
 
     boxIdController = TextEditingController(text: widget.box.boxId);
     _selectedStatus = widget.box.status;
+    _currentCollectorName = widget.box.collectorName;
 
     // Store initial values
     initialVenue = widget.box.venueName;
@@ -90,13 +90,6 @@ class _BoxDetailScreenState extends State<BoxDetailScreen> {
 
     _phoneController.text = widget.box.contactPersonPhone;
     _messageController.text = _generateCollectionMessage();
-    if (!_mockSms) {
-      twilioFlutter = TwilioFlutter(
-        accountSid: 'ACb2de03afb31797babd208aa7b410eb69',
-        authToken: '8d040ac39a47f7e219344b71fa533ec2',
-        twilioNumber: 'MarkazIslam',
-      );
-    }
   }
 
   void _checkForChanges() {
@@ -132,9 +125,10 @@ class _BoxDetailScreenState extends State<BoxDetailScreen> {
       nameError =
           contactPersonNameController.text.trim().isEmpty ||
           contactPersonNameController.text.trim().length > 255;
-      phoneError = !RegExp(
-        r'^\d{10}$',
-      ).hasMatch(contactPersonPhoneController.text.trim());
+      
+      // Allow 10 digits OR 11 digits if starts with 0
+      final phone = contactPersonPhoneController.text.trim();
+      phoneError = !RegExp(r'^(0\d{10}|\d{10})$').hasMatch(phone);
 
       hasError = venueError || nameError || phoneError;
     });
@@ -153,31 +147,23 @@ class _BoxDetailScreenState extends State<BoxDetailScreen> {
   }
 
   Future<void> updateBox() async {
-    if (!_validateFields()) return; // Stop if validation fails
+    if (!_validateFields()) return;
 
-    final updatedBox = BoxModel(
-      id: widget.box.id,
-      boxId: widget.box.boxId,
+    final phone = contactPersonPhoneController.text.trim();
+    // Normalize phone: if 11 digits starting with 0, strip the 0
+    final normalizedPhone = phone.startsWith('0') ? phone.substring(1) : phone;
+
+    final updatedBox = widget.box.copyWith(
       venueName: venueController.text.trim(),
       contactPersonName: contactPersonNameController.text.trim(),
-      contactPersonPhone: '+44${contactPersonPhoneController.text.trim()}',
-      totalCollected: widget.box.totalCollected,
+      contactPersonPhone: '+44$normalizedPhone',
       status: _selectedStatus,
-      createdAt: widget.box.createdAt,
       updatedAt: DateTime.now(),
-      boxSequence: 0, // TEMP – actual value set in provider
     );
 
     try {
-      await _service.updateBox(updatedBox);
-
       final boxProvider = Provider.of<BoxProvider>(context, listen: false);
-      final index = boxProvider.boxes.indexWhere((b) => b.id == updatedBox.id);
-
-      if (index != -1) {
-        boxProvider.boxes[index] = updatedBox;
-        boxProvider.setBoxes(List.from(boxProvider.boxes));
-      }
+      await boxProvider.updateBox(updatedBox);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -252,11 +238,6 @@ class _BoxDetailScreenState extends State<BoxDetailScreen> {
     try {
       await _service.deleteBox(widget.box.id);
 
-      final boxProvider = Provider.of<BoxProvider>(context, listen: false);
-      boxProvider.setBoxes(
-        boxProvider.boxes.where((b) => b.id != widget.box.id).toList(),
-      );
-
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -282,12 +263,6 @@ class _BoxDetailScreenState extends State<BoxDetailScreen> {
   Future<Uint8List> _generateQrPdf() async {
     final doc = pw.Document();
 
-    final qrImage = await QrPainter(
-      data: widget.box.boxId,
-      version: QrVersions.auto,
-      gapless: false,
-    ).toImageData(200);
-
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -296,13 +271,30 @@ class _BoxDetailScreenState extends State<BoxDetailScreen> {
             child: pw.Column(
               mainAxisAlignment: pw.MainAxisAlignment.center,
               children: [
-                pw.Text('Box ${widget.box.boxSequence.toString().padLeft(3, '0')}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                pw.Text(
+                  'Box ${widget.box.boxSequence.toString().padLeft(3, '0')}',
+                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  widget.box.venueName,
+                  style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 30),
+                pw.SizedBox(
+                  width: 250,
+                  height: 250,
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: widget.box.boxId,
+                    drawText: false,
+                  ),
+                ),
                 pw.SizedBox(height: 20),
-                pw.Text(widget.box.venueName, style: pw.TextStyle(fontSize: 20,fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 20),
-                pw.Image(pw.MemoryImage(qrImage!.buffer.asUint8List())),
-                pw.SizedBox(height: 20),
-                pw.Text(widget.box.boxId, style: pw.TextStyle(fontSize: 20)),
+                pw.Text(
+                  'ID: ${widget.box.boxId}',
+                  style: const pw.TextStyle(fontSize: 16),
+                ),
               ],
             ),
           );
@@ -345,7 +337,7 @@ $timestamp
         await Future.delayed(const Duration(seconds: 1));
         debugPrint('MOCK COLLECTION MESSAGE SENT');
       } else {
-        await twilioFlutter.sendSMS(
+        await TwilioService.sendSMS(
           toNumber: _phoneController.text,
           messageBody: _messageController.text,
         );
@@ -361,10 +353,14 @@ $timestamp
       if (!mounted) return;
       _showMessageSentDialog();
     } catch (e) {
+      debugPrint('Twilio Error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error sending message: $e')));
+      ).showSnackBar(SnackBar(
+        content: Text('Error sending message: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ));
     }
   }
 
@@ -730,7 +726,7 @@ $timestamp
                                     MaterialPageRoute(
                                       builder: (_) => EnterAmountScreen(
                                         box: widget.box,
-                                        collectorName: widget.box.collectorName ?? 'Unknown',
+                                        collectorName: _currentCollectorName ?? 'Unknown',
 
                                       ),
                                     ),

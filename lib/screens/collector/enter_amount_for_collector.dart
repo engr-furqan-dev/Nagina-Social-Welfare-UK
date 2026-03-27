@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:twilio_flutter/twilio_flutter.dart';
 
 import 'collector_dashboard_screen.dart';
 import '../../models/box_model.dart';
 import '../../models/collection_model.dart';
 import '../../services/firebase_service.dart';
+import '../../services/twilio_service.dart';
 import '../../models/collector_model.dart';
 
 class EnterAmountScreen extends StatefulWidget {
@@ -20,18 +20,10 @@ class _EnterAmountScreenState extends State<EnterAmountScreen> {
   final TextEditingController _amountController = TextEditingController();
   bool _isSubmitting = false;
   final bool _mockSms = false;
-  TwilioFlutter? _twilioFlutter;
 
   @override
   void initState() {
     super.initState();
-    if (!_mockSms) {
-      _twilioFlutter = TwilioFlutter(
-        accountSid: 'ACb2de03afb31797babd208aa7b410eb69',
-        authToken: '8d040ac39a47f7e219344b71fa533ec2',
-        twilioNumber: 'MarkazIslam',
-      );
-    }
   }
 
   String _formatDate(DateTime date) {
@@ -101,7 +93,7 @@ $timestamp
         await Future.delayed(const Duration(seconds: 1));
         debugPrint('MOCK SMS SENT TO CONTACT PERSON');
       } else {
-        await _twilioFlutter!.sendSMS(
+        await TwilioService.sendSMS(
           toNumber: widget.box.contactPersonPhone,
           messageBody: _generateReceiptMessage(amount),
         );
@@ -117,7 +109,7 @@ $timestamp
           admin['smsEnabled'] == true &&
           admin['phone'] != null &&
           !_mockSms) {
-        await _twilioFlutter!.sendSMS(
+        await TwilioService.sendSMS(
           toNumber: admin['phone'],
           messageBody: _adminReceiptMessage(amount),
         );
@@ -127,9 +119,13 @@ $timestamp
       _showReceiptSentDialog();
 
     } catch (e) {
+      debugPrint('Twilio Error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending receipt: $e')),
+        SnackBar(
+          content: Text('Error sending receipt: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

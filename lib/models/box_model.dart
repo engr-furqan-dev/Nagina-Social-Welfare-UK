@@ -74,44 +74,39 @@ class BoxModel {
       'boxId': boxId,
       'venueName': venueName,
       'collectorName': collectorName,
-
       'contactPersonName': contactPersonName,
       'contactPersonPhone': contactPersonPhone,
       'totalCollected': totalCollected,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
       'status': status.name,
-      'completedAt': completedAt,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'boxSequence': boxSequence,
-
-
     };
   }
 
   factory BoxModel.fromMap(String docId, Map<String, dynamic> map) {
+    DateTime parseDate(dynamic value) {
+      if (value is Timestamp) return value.toDate();
+      return DateTime.now(); // Fallback for pending server timestamps or nulls
+    }
+
     return BoxModel(
       id: docId,
       boxId: map['boxId'] ?? '',
       venueName: map['venueName'] ?? '',
       collectorName: map['collectorName'],
-
-
       contactPersonName: map['contactPersonName'] ?? map['ownerName'] ?? '',
       contactPersonPhone: map['contactPersonPhone'] ?? map['ownerPhone'] ?? '',
       totalCollected: (map['totalCollected'] ?? 0).toDouble(),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      createdAt: parseDate(map['createdAt']),
+      updatedAt: parseDate(map['updatedAt']),
       boxSequence: map['boxSequence'] ?? 0,
-
       status: BoxStatus.values.firstWhere(
-            (e) => e.name == map['status'],
+        (e) => e.name == map['status'],
         orElse: () => BoxStatus.notCollected,
       ),
-      completedAt: map['completedAt'] != null
-          ? (map['completedAt'] as Timestamp).toDate()
-          : null,
-
-
+      completedAt: map['completedAt'] != null ? parseDate(map['completedAt']) : null,
     );
   }
 
