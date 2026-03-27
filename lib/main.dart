@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/box_provider.dart';
+import 'providers/cash_receipt_provider.dart';
 import 'providers/collection_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth_gate.dart';
@@ -19,6 +20,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => BoxProvider()),
         ChangeNotifierProvider(create: (_) => CollectionProvider()),
+        ChangeNotifierProvider(create: (_) => CashReceiptProvider()),
       ],
       child: const CharityCollection(),
     ),

@@ -242,3 +242,19 @@ Recommended update order for future changes:
 2. provider/service contract sections
 3. model field contract sections
 4. known gaps/risks and diagram
+
+## 11) Cash Receipt Subsystem
+
+- Admin-only receipt flow is implemented from `DashboardScreen`.
+- Data is stored in Firestore collection `cash_receipts`.
+- New model: `lib/models/cash_receipt_model.dart`.
+- New provider: `lib/providers/cash_receipt_provider.dart`.
+- New screens:
+  - `lib/screens/admin/generate_cash_receipt_screen.dart`
+  - `lib/screens/admin/receipt_log_screen.dart`
+- New service utility:
+  - `lib/services/receipt_pdf_service.dart` for generating and sharing PDF receipts.
+- Dashboard now includes:
+  - action to generate cash receipt
+  - action to view receipt log
+  - monthly cash total stat card sourced from `CashReceiptProvider.monthlyTotal()`.

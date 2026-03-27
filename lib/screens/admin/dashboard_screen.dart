@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/box_provider.dart';
+import '../../providers/cash_receipt_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../services/firebase_service.dart';
 import '../onboarding_screen.dart';
@@ -11,8 +12,10 @@ import 'monthly_summary_screen.dart';
 
 import 'all_boxes_screen.dart';
 import 'collector_list_screen.dart';
+import 'generate_cash_receipt_screen.dart';
 import 'box_detail_screen.dart';
 import 'qr_scan_screen.dart';
+import 'receipt_log_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -244,6 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         builder: (context) {
                           final boxes = context.watch<BoxProvider>().boxes;
                           final collections = context.watch<CollectionProvider>().collections;
+                          final cashMonthTotal = context.watch<CashReceiptProvider>().monthlyTotal();
                           
                           double todayTotal = 0;
                           double monthTotal = 0;
@@ -287,6 +291,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   color: Colors.teal.shade700,
                                   delay: 0,
                                 ),
+                                const SizedBox(width: 12),
+                                _StatCard(
+                                  title: "Cash This Month",
+                                  value: "£${cashMonthTotal.toStringAsFixed(0)}",
+                                  icon: Icons.receipt_long,
+                                  color: Colors.purple.shade700,
+                                  delay: 0,
+                                ),
                               ],
                             ),
                           );
@@ -321,6 +333,34 @@ class _DashboardScreenState extends State<DashboardScreen>
                         icon: Icons.bar_chart_outlined,
                         color: primaryColor,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MonthlySummaryScreen())),
+                        delay: 0,
+                      ),
+                      const SizedBox(height: 16),
+                      _DashboardTile(
+                        title: "GENERATE CASH RECEIPT",
+                        subtitle: "Create and share a professional cash receipt",
+                        icon: Icons.receipt_long_outlined,
+                        color: primaryColor,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const GenerateCashReceiptScreen(),
+                          ),
+                        ),
+                        delay: 0,
+                      ),
+                      const SizedBox(height: 16),
+                      _DashboardTile(
+                        title: "RECEIPT LOG",
+                        subtitle: "Search and review generated cash receipts",
+                        icon: Icons.history,
+                        color: primaryColor,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ReceiptLogScreen(),
+                          ),
+                        ),
                         delay: 0,
                       ),
                       const SizedBox(height: 16),
